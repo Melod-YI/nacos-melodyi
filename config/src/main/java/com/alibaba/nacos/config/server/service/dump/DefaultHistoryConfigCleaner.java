@@ -31,13 +31,16 @@ import java.util.Calendar;
  * The type Default history config cleaner.
  *
  * @author Sunrisea
+ * @deprecated Use {@link com.alibaba.nacos.plugin.historycleanup.spi.HistoryConfigCleanerPluginService} instead.
+ *             This class is kept for backward compatibility.
  */
+@Deprecated
 public class DefaultHistoryConfigCleaner implements HistoryConfigCleaner {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultHistoryConfigCleaner.class);
-    
+
     private HistoryConfigInfoPersistService historyConfigInfoPersistService;
-    
+
     @Override
     public void cleanHistoryConfig() {
         Timestamp startTime = getBeforeStamp(TimeUtils.getCurrentTime(), 24 * getRetentionDays());
@@ -45,14 +48,14 @@ public class DefaultHistoryConfigCleaner implements HistoryConfigCleaner {
         LOGGER.warn("clearConfigHistory, getBeforeStamp:{}, pageSize:{}", startTime, pageSize);
         getHistoryConfigInfoPersistService().removeConfigHistory(startTime, pageSize);
     }
-    
+
     private HistoryConfigInfoPersistService getHistoryConfigInfoPersistService() {
         if (historyConfigInfoPersistService == null) {
             historyConfigInfoPersistService = ApplicationUtils.getBean(HistoryConfigInfoPersistService.class);
         }
         return historyConfigInfoPersistService;
     }
-    
+
     private Timestamp getBeforeStamp(Timestamp date, int step) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -60,11 +63,11 @@ public class DefaultHistoryConfigCleaner implements HistoryConfigCleaner {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return Timestamp.valueOf(format.format(cal.getTime()));
     }
-    
+
     private int getRetentionDays() {
         return PropertyUtil.getConfigRententionDays();
     }
-    
+
     @Override
     public String getName() {
         return "nacos";

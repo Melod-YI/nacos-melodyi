@@ -30,6 +30,9 @@ import com.alibaba.nacos.core.cluster.ServerMemberManager;
 import com.alibaba.nacos.core.namespace.repository.NamespacePersistService;
 import com.alibaba.nacos.persistence.datasource.DataSourceService;
 import com.alibaba.nacos.persistence.datasource.DynamicDataSource;
+import com.alibaba.nacos.plugin.historycleanup.HistoryConfigCleanerPluginManager;
+import com.alibaba.nacos.plugin.historycleanup.model.HistoryCleanupContext;
+import com.alibaba.nacos.plugin.historycleanup.spi.HistoryConfigCleanerPluginService;
 import com.alibaba.nacos.sys.env.EnvUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,42 +61,44 @@ class DumpServiceTest {
     private static final String TAG_TABLE_NAME = "config_info_tag";
     
     @Mock
-    DefaultHistoryConfigCleaner defaultHistoryConfigCleaner = new DefaultHistoryConfigCleaner();
-    
+    HistoryConfigCleanerPluginService historyConfigCleanerPluginService;
+
     @Mock
     ConfigInfoPersistService configInfoPersistService;
-    
+
     @Mock
-    
     NamespacePersistService namespacePersistService;
-    
+
     @Mock
     HistoryConfigInfoPersistService historyConfigInfoPersistService;
-    
+
     @Mock
     ConfigInfoGrayPersistService configInfoGrayPersistService;
-    
+
     @Mock
     ServerMemberManager memberManager;
-    
+
     @Mock
     ConfigMigrateService configMigrateService;
-    
+
     MockedStatic<EnvUtil> envUtilMockedStatic;
-    
+
     MockedStatic<ConfigExecutor> configExecutorMocked;
-    
+
     MockedStatic<PropertyUtil> propertyUtilMockedStatic;
-    
-    MockedStatic<HistoryConfigCleanerManager> historyConfigCleanerManagerMockedStatic;
-    
+
+    MockedStatic<HistoryConfigCleanerPluginManager> historyConfigCleanerPluginManagerMockedStatic;
+
     @Mock
     private DataSourceService dataSourceService;
-    
+
     private DumpService dumpService;
-    
+
     @Mock
     private TaskManager dumpTaskMgr;
+
+    @Mock
+    private HistoryConfigCleanerPluginManager historyConfigCleanerPluginManager;
     
     @BeforeEach
     void setUp() {
@@ -101,25 +106,27 @@ class DumpServiceTest {
         propertyUtilMockedStatic = Mockito.mockStatic(PropertyUtil.class);
         propertyUtilMockedStatic.when(() -> PropertyUtil.getAllDumpPageSize()).thenReturn(100);
         propertyUtilMockedStatic.when(() -> PropertyUtil.getDumpChangeWorkerInterval()).thenReturn(1000 * 60L);
-        
+        propertyUtilMockedStatic.when(() -> PropertyUtil.getConfigRententionDays()).thenReturn(30);
+
         ReflectionTestUtils.setField(DynamicDataSource.getInstance(), "localDataSourceService", dataSourceService);
         ReflectionTestUtils.setField(DynamicDataSource.getInstance(), "basicDataSourceService", dataSourceService);
         dumpService = new ExternalDumpService(configInfoPersistService, namespacePersistService,
                 historyConfigInfoPersistService, configInfoGrayPersistService, memberManager, configMigrateService);
         configExecutorMocked = Mockito.mockStatic(ConfigExecutor.class);
-        historyConfigCleanerManagerMockedStatic = Mockito.mockStatic(HistoryConfigCleanerManager.class);
-        historyConfigCleanerManagerMockedStatic.when(
-                () -> HistoryConfigCleanerManager.getHistoryConfigCleaner(anyString()))
-                .thenReturn(defaultHistoryConfigCleaner);
-        
+        historyConfigCleanerPluginManagerMockedStatic = Mockito.mockStatic(HistoryConfigCleanerPluginManager.class);
+        historyConfigCleanerPluginManagerMockedStatic.when(HistoryConfigCleanerPluginManager::getInstance)
+                .thenReturn(historyConfigCleanerPluginManager);
+        Mockito.when(historyConfigCleanerPluginManager.getPluginServiceOrDefault(anyString()))
+                .thenReturn(historyConfigCleanerPluginService);
+        Mockito.when(historyConfigCleanerPluginService.getPluginName()).thenReturn("nacos");
     }
-    
+
     @AfterEach
     void after() {
         envUtilMockedStatic.close();
         configExecutorMocked.close();
         propertyUtilMockedStatic.close();
-        historyConfigCleanerManagerMockedStatic.close();
+        historyConfigCleanerPluginManagerMockedStatic.close();
     }
     
     @Test
@@ -183,10 +190,11 @@ class DumpServiceTest {
     void clearHistory() {
         envUtilMockedStatic.when(() -> EnvUtil.getProperty(eq("nacos.config.retention.days"))).thenReturn("10");
         Mockito.when(memberManager.isFirstIp()).thenReturn(true);
+        HistoryCleanupContext context = new HistoryCleanupContext();
         DumpService.ConfigHistoryClear configHistoryClear = dumpService.new ConfigHistoryClear(
-                defaultHistoryConfigCleaner);
+                historyConfigCleanerPluginService, context);
         configHistoryClear.run();
-        Mockito.verify(defaultHistoryConfigCleaner, times(1)).cleanHistoryConfig();
+        Mockito.verify(historyConfigCleanerPluginService, times(1)).doClean(any(HistoryCleanupContext.class));
     }
     
     @Test

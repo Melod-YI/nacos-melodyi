@@ -890,6 +890,16 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-history-cleanup-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-default-history-cleanup-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>nacos-control-plugin</artifactId>
                 <version>${project.version}</version>

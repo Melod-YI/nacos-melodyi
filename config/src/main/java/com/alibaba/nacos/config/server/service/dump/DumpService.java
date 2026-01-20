@@ -42,6 +42,10 @@ import com.alibaba.nacos.config.server.utils.PropertyUtil;
 import com.alibaba.nacos.core.cluster.ServerMemberManager;
 import com.alibaba.nacos.core.namespace.repository.NamespacePersistService;
 import com.alibaba.nacos.persistence.datasource.DynamicDataSource;
+import com.alibaba.nacos.plugin.historycleanup.HistoryConfigCleanerPluginManager;
+import com.alibaba.nacos.plugin.historycleanup.model.HistoryCleanupContext;
+import com.alibaba.nacos.plugin.historycleanup.model.HistoryCleanupParameter;
+import com.alibaba.nacos.plugin.historycleanup.spi.HistoryConfigCleanerPluginService;
 import com.alibaba.nacos.sys.env.EnvUtil;
 import com.alibaba.nacos.sys.utils.TimerContext;
 import org.slf4j.Logger;
@@ -163,24 +167,28 @@ public abstract class DumpService {
     protected abstract void init() throws Throwable;
     
     /**
-     * config history clear.
+     * config history clear using plugin.
      */
     class ConfigHistoryClear implements Runnable {
-        
-        private HistoryConfigCleaner historyConfigCleaner;
-        
-        public ConfigHistoryClear(HistoryConfigCleaner historyConfigCleaner) {
-            this.historyConfigCleaner = historyConfigCleaner;
+
+        private final HistoryConfigCleanerPluginService pluginService;
+
+        private final HistoryCleanupContext context;
+
+        public ConfigHistoryClear(HistoryConfigCleanerPluginService pluginService, HistoryCleanupContext context) {
+            this.pluginService = pluginService;
+            this.context = context;
         }
-        
+
         @Override
         public void run() {
             LOGGER.warn("clearHistoryConfig get scheduled");
             if (canExecute()) {
                 try {
-                    LOGGER.warn("clearHistoryConfig is enable in current context, try to run cleaner");
-                    historyConfigCleaner.cleanHistoryConfig();
-                    LOGGER.warn("history config cleaner successfully");
+                    LOGGER.warn("clearHistoryConfig is enable in current context, try to run cleaner plugin: {}",
+                            pluginService.getPluginName());
+                    pluginService.doClean(context);
+                    LOGGER.warn("history config cleaner plugin successfully");
                 } catch (Throwable e) {
                     LOGGER.error("clearConfigHistory error : {}", e.toString());
                 }
@@ -252,9 +260,15 @@ public abstract class DumpService {
                         random.nextInt((int) PropertyUtil.getDumpChangeWorkerInterval()), TimeUnit.MILLISECONDS);
             }
             
-            HistoryConfigCleaner cleaner = HistoryConfigCleanerManager.getHistoryConfigCleaner(
-                    HistoryConfigCleanerConfig.getInstance().getActiveHistoryConfigCleaner());
-            ConfigExecutor.scheduleConfigTask(new ConfigHistoryClear(cleaner), 10, 10, TimeUnit.MINUTES);
+            HistoryConfigCleanerPluginService pluginService = HistoryConfigCleanerPluginManager.getInstance()
+                    .getPluginServiceOrDefault(HistoryConfigCleanerConfig.getInstance().getActiveHistoryConfigCleaner());
+            if (pluginService != null) {
+                HistoryCleanupContext cleanupContext = buildHistoryCleanupContext();
+                ConfigExecutor.scheduleConfigTask(new ConfigHistoryClear(pluginService, cleanupContext), 10, 10,
+                        TimeUnit.MINUTES);
+            } else {
+                LOGGER.warn("No history config cleaner plugin found, skip scheduling history cleanup task.");
+            }
             
         } finally {
             TimerContext.end(dumpFileContext, LogUtil.DUMP_LOG);
@@ -340,6 +354,21 @@ public abstract class DumpService {
         dumpAllTaskMgr.addTask(DumpAllTask.TASK_ID, new DumpAllTask());
     }
     
+    /**
+     * Build history cleanup context with data accessor and parameters.
+     *
+     * @return HistoryCleanupContext
+     */
+    private HistoryCleanupContext buildHistoryCleanupContext() {
+        HistoryCleanupParameter parameter = new HistoryCleanupParameter();
+        parameter.setRetentionDays(PropertyUtil.getConfigRententionDays());
+        parameter.setBatchSize(1000);
+        HistoryCleanupContext context = new HistoryCleanupContext();
+        context.setParameter(parameter);
+        context.setDataAccessor(new HistoryConfigCleanerDataAccessorImpl(historyConfigInfoPersistService));
+        return context;
+    }
+
     /**
      * Used to determine whether the aggregation task, configuration history cleanup task can be performed.
      *

@@ -42,6 +42,11 @@
             <artifactId>default-datasource-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-default-history-cleanup-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -58,7 +63,7 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${project.basedir}/../../distribution/plugins</outputDirectory>
-                            <includeArtifactIds>default-auth-plugin,default-control-plugin,default-datasource-plugin</includeArtifactIds>
+                            <includeArtifactIds>default-auth-plugin,default-control-plugin,default-datasource-plugin,nacos-default-history-cleanup-plugin</includeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>

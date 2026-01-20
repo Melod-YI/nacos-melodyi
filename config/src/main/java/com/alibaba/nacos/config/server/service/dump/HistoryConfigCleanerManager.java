@@ -24,18 +24,20 @@ import java.util.HashMap;
  * The type History config cleaner manager.
  *
  * @author Sunrisea
+ * @deprecated Use {@link com.alibaba.nacos.plugin.historycleanup.HistoryConfigCleanerPluginManager} instead.
  */
+@Deprecated
 public class HistoryConfigCleanerManager {
-    
+
     private static HashMap<String, HistoryConfigCleaner> historyConfigCleanerMap = new HashMap<String, HistoryConfigCleaner>();
-    
+
     static {
         NacosServiceLoader.load(HistoryConfigCleaner.class).forEach(historyConfigCleaner -> {
             historyConfigCleanerMap.put(historyConfigCleaner.getName(), historyConfigCleaner);
         });
         historyConfigCleanerMap.put("nacos", new DefaultHistoryConfigCleaner());
     }
-    
+
     /**
      * Gets history config cleaner.
      *

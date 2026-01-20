@@ -57,7 +57,12 @@ public enum PluginType {
     /**
      * Control plugin.
      */
-    CONTROL("control", "Control plugin");
+    CONTROL("control", "Control plugin"),
+
+    /**
+     * History config cleanup plugin.
+     */
+    HISTORY_CONFIG_CLEANUP("history-config-cleanup", "History config cleanup plugin");
 
     private final String type;
 

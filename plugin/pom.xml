@@ -37,6 +37,7 @@
         <module>environment</module>
         <module>control</module>
         <module>config</module>
+        <module>history-cleanup</module>
     </modules>
     <packaging>pom</packaging>
 

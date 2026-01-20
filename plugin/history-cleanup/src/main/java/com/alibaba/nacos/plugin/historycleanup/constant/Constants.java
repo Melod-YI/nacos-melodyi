@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-package com.alibaba.nacos.config.server.service.dump;
+package com.alibaba.nacos.plugin.historycleanup.constant;
 
 /**
- * The interface History config cleaner.
+ * Constants for history config cleanup plugin.
  *
- * @author Sunrisea
- * @deprecated Use {@link com.alibaba.nacos.plugin.historycleanup.spi.HistoryConfigCleanerPluginService} instead.
+ * @author xiweng.yy
  */
-@Deprecated
-public interface HistoryConfigCleaner {
+public class Constants {
 
-    /**
-     * Clean history config.
-     */
-    void cleanHistoryConfig();
+    public static final String DEFAULT_PLUGIN_NAME = "nacos";
 
-    /**
-     * Gets name.
-     *
-     * @return the name
-     */
-    String getName();
+    public static final int DEFAULT_RETENTION_DAYS = 30;
+
+    public static final int DEFAULT_BATCH_SIZE = 1000;
 }

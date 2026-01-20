@@ -66,6 +66,10 @@
             <groupId>com.alibaba.nacos</groupId>
             <artifactId>nacos-config-plugin</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-history-cleanup-plugin</artifactId>
+        </dependency>
         
         <!-- issue#12028 upgrade org.apache.httpcomponents:httpasyncclient to org.apache.httpcomponents.client5:httpclient5 -->
         <dependency>
